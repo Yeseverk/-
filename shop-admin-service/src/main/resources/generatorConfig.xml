@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+
+    <!-- 引入数据库连接信息 自己找一下本地路径-->
+    <classPathEntry location="D:\openSource\apache-maven-3.3.9\repository\com\mysql\mysql-connector-j\8.0.31\mysql-connector-j-8.0.31.jar"/>
+
+    <context id="DB2Tables" targetRuntime="MyBatis3">
+
+        <commentGenerator>
+            <property name="suppressAllComments" value="true"></property>
+        </commentGenerator>
+
+
+        <!-- 设定数据库连接 -->
+        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/shop"
+                        userId="root"
+                        password="123456">
+        </jdbcConnection>
+
+
+
+        <javaTypeResolver >
+            <property name="forceBigDecimals" value="false" />
+        </javaTypeResolver>
+
+
+        <!--  生成 bean 存放的位置 model  -->
+        <javaModelGenerator targetPackage="com.cjc.pojo" targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+
+        <!-- 生成的mapper文件的位置 -->
+        <sqlMapGenerator targetPackage="mapper"  targetProject=".\src\main\resources">
+            <property name="enableSubPackages" value="true" />
+        </sqlMapGenerator>
+
+        <!-- 对应的那个mapper接口的存放位置  -->
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.cjc.mapper"  targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+        </javaClientGenerator>
+
+
+        <!--  设定反向生成的表 -->
+        <table tableName="tb_admin"></table>
+    </context>
+</generatorConfiguration>

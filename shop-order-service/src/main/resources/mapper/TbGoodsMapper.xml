@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cjc.mapper.TbGoodsMapper">
+
+    <resultMap id="BaseResultMap" type="com.cjc.pojo.TbGoods">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="goods_name" property="goodsName" jdbcType="VARCHAR"/>
+        <result column="caption" property="caption" jdbcType="VARCHAR"/>
+        <result column="price" property="price" jdbcType="DECIMAL"/>
+        <result column="is_marketable" property="isMarketable" jdbcType="VARCHAR"/>
+        <result column="audit_status" property="auditStatus" jdbcType="VARCHAR"/>
+        <result column="default_item_id" property="defaultItemId" jdbcType="BIGINT"/>
+        <result column="small_pic" property="smallPic" jdbcType="VARCHAR"/>
+        <result column="seller_id" property="sellerId" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, goods_name, caption, price, is_marketable, audit_status, default_item_id, small_pic, seller_id
+    </sql>
+
+    <!-- 根据ID查询商品基本信息 -->
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_goods
+        where id = #{goodsId,jdbcType=BIGINT}
+    </select>
+
+    <!-- 检查商品是否可购买（上架+审核通过） -->
+    <select id="selectForOrder" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_goods
+        where id = #{goodsId,jdbcType=BIGINT}
+        and is_marketable = '1'
+        and audit_status = '2'
+    </select>
+
+</mapper>

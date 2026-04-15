@@ -1,0 +1,59 @@
+xingyuhang:
+  aliyun:
+    oss:
+      endpoint: oss-cn-hangzhou.aliyuncs.com
+      bucket-name: yuhang-library-oss
+      access-key-id: ${XINGYUHANG_ALIYUN_OSS_ACCESS_KEY_ID}
+      access-key-secret: ${XINGYUHANG_ALIYUN_OSS_ACCESS_KEY_SECRET}
+  baidu:
+    audit:
+      app-id: 7625072
+      api-key: ${XINGYUHANG_BAIDU_AUDIT_API_KEY}
+      secret-key: ${XINGYUHANG_BAIDU_AUDIT_SECRET_KEY}
+server:
+  port: 8082
+spring:
+  cloud:
+    nacos:
+      discovery:  # 注册中心
+        server-addr: localhost:8848
+  application:
+    name: shop-admin-service
+  profiles:
+    active: dev
+  datasource:
+    password: 123456
+    username: root
+    url: jdbc:mysql://localhost:3306/shop?useSSL=false&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource  # 指定我使用的链接池
+  mvc:
+    throw-exception-if-no-handler-found: false
+  web:
+    resources:
+      add-mappings: false
+
+# 健康检查配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 控制台输出sql日志。
+
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  packages-to-scan: com.cjc.controller  # 改成你自己的启动类包名

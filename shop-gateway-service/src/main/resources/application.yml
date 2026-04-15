@@ -1,0 +1,61 @@
+server:
+  port: 10010
+spring:
+  application:
+    name: shop-gateway-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    gateway:
+      # 。。。
+      globalcors: # 全局的跨域处理
+        add-to-simple-url-handler-mapping: true # 解决options请求被拦截问题
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns: # 允许哪些网站的跨域请求
+              - "*"
+            allowedMethods: # 允许的跨域ajax的请求方式
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "PATCH"
+              - "OPTIONS"
+            allowedHeaders: "*" # 允许在请求中携带的头信息
+            allowCredentials: true # 是否允许携带cookie
+            maxAge: 360000 # 这次跨域检测的有效期
+      # 是否和服务注册与发现组件结合，设置为 true 后可以直接使用应用名称调用服务
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true # 服务名称转成小写
+      routes:
+        - id: shop-goods-service
+          uri: lb://shop-goods-service
+          predicates:
+            - Path=/brand/**, /spec/**, /typeTemplate/**, /item/**, /goods/**
+        - id: shop-admin-service
+          uri: lb://shop-admin-service
+          predicates:
+            - Path=/admin/**
+        - id: shop-seller-service
+          uri: lb://shop-seller-service
+          predicates:
+            - Path=/seller/**
+        - id: shop-user-service
+          uri: lb://shop-user-service
+          predicates:
+            - Path=/user/**
+        - id: shop-cart-service
+          uri: lb://shop-cart-service
+          predicates:
+            - Path=/cart/**
+        - id: shop-order-service
+          uri: lb://shop-order-service
+          predicates:
+            - Path=/order/**, /address/**, /pay/**, /region/**
+        - id: shop-sso-service
+          uri: lb://shop-sso-service
+          predicates:
+            - Path=/login/**

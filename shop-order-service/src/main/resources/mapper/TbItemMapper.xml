@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cjc.mapper.TbItemMapper">
+
+    <resultMap id="BaseResultMap" type="com.cjc.pojo.TbItem">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="goods_id" property="goodsId" jdbcType="BIGINT"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="price" property="price" jdbcType="DECIMAL"/>
+        <result column="num" property="num" jdbcType="INTEGER"/>
+        <result column="stock_count" property="stockCount" jdbcType="INTEGER"/>
+        <result column="spec" property="spec" jdbcType="VARCHAR"/>
+        <result column="is_default" property="isDefault" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="image" property="image" jdbcType="VARCHAR"/>
+        <result column="seller_id" property="sellerId" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, goods_id, title, price, num, stock_count, spec, is_default, status, image, seller_id
+    </sql>
+
+    <!-- 根据ID查询SKU -->
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_item
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+
+    <!-- 根据商品ID查询默认SKU -->
+    <select id="selectDefaultItemByGoodsId" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_item
+        where goods_id = #{goodsId,jdbcType=BIGINT}
+        and is_default = '1'
+        limit 1
+    </select>
+
+    <!-- 根据商品ID查询任意一个SKU（兜底） -->
+    <select id="selectFirstItemByGoodsId" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_item
+        where goods_id = #{goodsId,jdbcType=BIGINT}
+        limit 1
+    </select>
+
+    <!-- 乐观锁扣减库存 -->
+    <update id="deductStock">
+        update tb_item
+        set stock_count = stock_count - #{num}
+        where id = #{itemId,jdbcType=BIGINT}
+        and stock_count >= #{num}
+    </update>
+
+    <!-- 释放库存（取消订单） -->
+    <update id="releaseStock">
+        update tb_item
+        set stock_count = stock_count + #{num}
+        where id = #{itemId,jdbcType=BIGINT}
+    </update>
+
+    <!-- 更新销量 -->
+    <update id="updateSales">
+        update tb_item
+        set num = num + #{num}
+        where id = #{itemId,jdbcType=BIGINT}
+    </update>
+
+</mapper>

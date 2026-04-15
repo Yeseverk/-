@@ -1,0 +1,62 @@
+xingyuhang:
+  aliyun:
+    oss:
+      endpoint: oss-cn-hangzhou.aliyuncs.com
+      bucket-name: yuhang-library-oss
+      access-key-id: ${XINGYUHANG_ALIYUN_OSS_ACCESS_KEY_ID}
+      access-key-secret: ${XINGYUHANG_ALIYUN_OSS_ACCESS_KEY_SECRET}
+  baidu:
+    audit:
+      app-id: 7625072
+      api-key: ${XINGYUHANG_BAIDU_AUDIT_API_KEY}
+      secret-key: ${XINGYUHANG_BAIDU_AUDIT_SECRET_KEY}
+server:
+  port: 8086
+spring:
+  cloud:
+    nacos:
+      discovery:  # 注册中心
+        server-addr: localhost:8848
+  application:
+    name: shop-goods-service
+  profiles:
+    active: dev
+  datasource:
+    password: 123456
+    username: root
+    url: jdbc:mysql://localhost:3306/shop?useSSL=false&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource  # 指定我使用的链接池
+  mvc:
+    throw-exception-if-no-handler-found: false
+  web:
+    resources:
+      add-mappings: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 控制台输出sql日志。
+
+# Freemarker配置（商品详情页静态化）
+spring.freemarker:
+  template-loader-path: classpath:/templates/
+  suffix: .ftl
+  cache: false  # 开发时关闭缓存，方便调试
+  charset: UTF-8
+  content-type: text/html
+
+# 静态页配置
+static:
+  page:
+    path: D:/static/goods  # 静态页存储路径（Windows）
+    url: http://localhost:8086/static/goods  # 静态页访问URL
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  packages-to-scan: com.cjc.controller  # 改成你自己的启动类包名

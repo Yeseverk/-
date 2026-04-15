@@ -1,0 +1,32 @@
+server:
+  port: 8083
+spring:
+  cloud:
+    nacos:
+      discovery:  # 注册中心
+        server-addr: localhost:8848
+  application:
+    name: shop-seller-service
+  profiles:
+    active: dev
+  datasource:
+    password: 123456
+    username: root
+    url: jdbc:mysql://localhost:3306/shop?useSSL=false&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource  # 指定我使用的链接池
+
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 控制台输出sql日志。
+
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  packages-to-scan: com.cjc.controller  # 改成你自己的启动类包名
