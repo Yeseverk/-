@@ -9,13 +9,14 @@
         <result column="price" property="price" jdbcType="DECIMAL"/>
         <result column="is_marketable" property="isMarketable" jdbcType="VARCHAR"/>
         <result column="audit_status" property="auditStatus" jdbcType="VARCHAR"/>
+        <result column="is_delete" property="isDelete" jdbcType="VARCHAR"/>
         <result column="default_item_id" property="defaultItemId" jdbcType="BIGINT"/>
         <result column="small_pic" property="smallPic" jdbcType="VARCHAR"/>
         <result column="seller_id" property="sellerId" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, goods_name, caption, price, is_marketable, audit_status, default_item_id, small_pic, seller_id
+        id, goods_name, caption, price, is_marketable, audit_status, is_delete, default_item_id, small_pic, seller_id
     </sql>
 
     <!-- 根据ID查询商品基本信息 -->
@@ -26,7 +27,18 @@
         where id = #{goodsId,jdbcType=BIGINT}
     </select>
 
-    <!-- 检查商品是否可购买（上架+审核通过） -->
+    <!-- 批量查询商品（解决N+1查询问题） -->
+    <select id="selectGoodsByIds" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_goods
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 检查商品是否可购买（上架+审核通过+未删除） -->
     <select id="selectForOrder" resultMap="BaseResultMap" parameterType="java.lang.Long">
         select
         <include refid="Base_Column_List"/>
@@ -34,6 +46,7 @@
         where id = #{goodsId,jdbcType=BIGINT}
         and is_marketable = '1'
         and audit_status = '2'
+        and is_delete != '1'
     </select>
 
 </mapper>

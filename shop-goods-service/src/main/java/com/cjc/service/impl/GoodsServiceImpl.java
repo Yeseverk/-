@@ -493,7 +493,7 @@ public class GoodsServiceImpl implements GoodsService {
         }
 
         // ========== 更新 SKU 数据（关键修复！）==========
-        // 1. 先删除旧的 SKU 数据
+        // 1. 删除旧的 SKU 数据
         TbItemExample deleteExample = new TbItemExample();
         deleteExample.createCriteria().andGoodsIdEqualTo(dto.getId());
         itemMapper.deleteByExample(deleteExample);

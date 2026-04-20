@@ -33,6 +33,19 @@ spring:
     resources:
       add-mappings: false
 
+# Seata 分布式事务配置
+seata:
+  tx-service-group: my_test_tx_group  # 事务分组名称
+  service:
+    vgroup-mapping:
+      my_test_tx_group: default  # 分组映射到集群
+    grouplist:
+      default: 127.0.0.1:8091  # Seata Server地址
+  registry:
+    type: file
+  config:
+    type: file
+
 mybatis:
   mapper-locations: classpath:mapper/*Mapper.xml
   configuration:

@@ -15,10 +15,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 购物车服务实现（Redis版本）
@@ -26,6 +25,8 @@ import java.util.Map;
  * Key: cart:user:{userId}
  * Field: {goodsId}_{itemId}
  * Value: JSON字符串（CartItem）
+ *
+ * 性能优化：批量查询解决N+1问题，无论购物车有几件商品，最多只查2次数据库
  */
 @Slf4j
 @Service
@@ -94,85 +95,173 @@ public class CartServiceImpl implements CartService {
     }
 
     /**
-     * 构建CartVo（查询商品信息）
+     * 获取用户购物车列表（批量查询优化版）
+     * 解决N+1查询问题：无论购物车有几件商品，最多只查2次数据库
+     *
+     * 商品有效性判断：
+     * 1. 商品存在 + SKU存在
+     * 2. isMarketable = '1'（上架）
+     * 3. auditStatus = '2'（审核通过）
+     * 4. isDelete != '1'（未删除）
      */
-    private CartVo buildCartVo(CartItem cartItem) {
-        CartVo vo = new CartVo();
-        // 使用goodsId_itemId作为唯一标识（前端selectedIds使用）
-        vo.setId(cartItem.getGoodsId() + "_"  + cartItem.getItemId());
-        vo.setGoodsId(cartItem.getGoodsId());
-        vo.setItemId(cartItem.getItemId());
-        vo.setNum(cartItem.getNum());
-        vo.setChecked(true); // 默认选中
-
-        // 查询商品信息
-        TbGoods goods = goodsMapper.selectGoodsById(cartItem.getGoodsId());
-        if (goods != null) {
-            vo.setGoodsName(goods.getGoodsName());
-            vo.setImage(goods.getSmallPic());
-            vo.setSellerId(goods.getSellerId());
-
-            // 查询SKU信息
-            TbItem item = null;
-            if (cartItem.getItemId() != null) {
-                item = itemMapper.selectItemById(cartItem.getItemId());
-            }
-
-            if (item == null && goods.getDefaultItemId() != null) {
-                item = itemMapper.selectItemById(goods.getDefaultItemId());
-            }
-
-            if (item == null) {
-                item = itemMapper.selectDefaultItemByGoodsId(cartItem.getGoodsId());
-            }
-
-            if (item == null) {
-                item = itemMapper.selectFirstItemByGoodsId(cartItem.getGoodsId());
-            }
-
-            if (item != null) {
-                vo.setPrice(item.getPrice());
-                vo.setSpec(item.getSpec());
-                vo.setStockCount(item.getStockCount());
-            } else {
-                // 使用商品价格作为兜底
-                vo.setPrice(goods.getPrice());
-                vo.setStockCount(0);
-            }
-        }
-
-        // 计算小计
-        if (vo.getPrice() != null && cartItem.getNum() != null) {
-            vo.setTotalPrice(vo.getPrice().multiply(new BigDecimal(cartItem.getNum())));
-        }
-
-        return vo;
-    }
-
     @Override
     public List<CartVo> listWithGoods(Long userId) {
         String key = getCartKey(userId);
-
-        // 从Redis获取全部购物车商品
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
 
         if (entries == null || entries.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<CartVo> result = new ArrayList<>();
+        // 1. 解析 Redis 数据并收集需要查询的 ID 列表
+        List<CartItem> cartItems = new ArrayList<>();
+        Set<Long> itemIdsToQuery = new HashSet<>();
+        Set<Long> goodsIdsToQuery = new HashSet<>();
 
         for (Map.Entry<Object, Object> entry : entries.entrySet()) {
             try {
-                String json = (String) entry.getValue();
-                CartItem cartItem = JSON.parseObject(json, CartItem.class);
-
-                // 构建CartVo，查询商品信息
-                CartVo vo = buildCartVo(cartItem);
-                result.add(vo);
+                CartItem cartItem = JSON.parseObject((String) entry.getValue(), CartItem.class);
+                if (cartItem != null) {
+                    cartItems.add(cartItem);
+                    // 收集所有商品ID（用于查询商品状态）
+                    if (cartItem.getGoodsId() != null) {
+                        goodsIdsToQuery.add(cartItem.getGoodsId());
+                    }
+                    // 收集有itemId的（用于查询SKU）
+                    if (cartItem.getItemId() != null && cartItem.getItemId() != 0) {
+                        itemIdsToQuery.add(cartItem.getItemId());
+                    }
+                }
             } catch (Exception e) {
                 log.warn("解析购物车数据失败: {}", entry.getValue(), e);
             }
+        }
+
+        if (cartItems.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 批量查询数据库（最多2次查询）
+        Map<Long, TbItem> itemMap = new HashMap<>();
+        if (!itemIdsToQuery.isEmpty()) {
+            List<TbItem> items = itemMapper.selectItemByIds(new ArrayList<>(itemIdsToQuery));
+            itemMap = items.stream().collect(Collectors.toMap(TbItem::getId, Function.identity()));
+        }
+
+        Map<Long, TbGoods> goodsMap = new HashMap<>();
+        if (!goodsIdsToQuery.isEmpty()) {
+            List<TbGoods> goodsList = goodsMapper.selectGoodsByIds(new ArrayList<>(goodsIdsToQuery));
+            goodsMap = goodsList.stream().collect(Collectors.toMap(TbGoods::getId, Function.identity()));
+        }
+
+        // 3. 在内存中完成数据组装 + 状态校验
+        List<CartVo> result = new ArrayList<>();
+        for (CartItem cartItem : cartItems) {
+            CartVo vo = new CartVo();
+            vo.setId(cartItem.getGoodsId() + "_" + cartItem.getItemId());
+            vo.setGoodsId(cartItem.getGoodsId());
+            vo.setItemId(cartItem.getItemId());
+            vo.setNum(cartItem.getNum());
+            vo.setChecked(true);
+
+            TbGoods goodsInfo = goodsMap.get(cartItem.getGoodsId());
+            TbItem skuInfo = itemMap.get(cartItem.getItemId());
+
+            // 商品状态校验
+            if (goodsInfo == null) {
+                // 商品完全不存在
+                vo.setGoodsName("商品已失效");
+                vo.setPrice(BigDecimal.ZERO);
+                vo.setStockCount(0);
+                vo.setValid(false);
+                vo.setStatusMsg("商品已失效");
+            } else if ("1".equals(goodsInfo.getIsDelete())) {
+                // 商品已删除
+                vo.setGoodsName(goodsInfo.getGoodsName() + "（已失效）");
+                vo.setImage(goodsInfo.getSmallPic());
+                vo.setPrice(BigDecimal.ZERO);
+                vo.setStockCount(0);
+                vo.setSellerId(goodsInfo.getSellerId());
+                vo.setIsMarketable(goodsInfo.getIsMarketable());
+                vo.setAuditStatus(goodsInfo.getAuditStatus());
+                vo.setIsDelete(goodsInfo.getIsDelete());
+                vo.setValid(false);
+                vo.setStatusMsg("商品已失效");
+            } else if (!"2".equals(goodsInfo.getAuditStatus())) {
+                // 商品未审核通过（未提交/待审核/审核驳回）
+                vo.setGoodsName(goodsInfo.getGoodsName());
+                vo.setImage(goodsInfo.getSmallPic());
+                vo.setPrice(BigDecimal.ZERO);
+                vo.setSellerId(goodsInfo.getSellerId());
+                vo.setIsMarketable(goodsInfo.getIsMarketable());
+                vo.setAuditStatus(goodsInfo.getAuditStatus());
+                vo.setIsDelete(goodsInfo.getIsDelete());
+                vo.setValid(false);
+
+                // 根据审核状态给出不同提示
+                if ("0".equals(goodsInfo.getAuditStatus())) {
+                    vo.setStatusMsg("商品正在调整中");
+                } else if ("1".equals(goodsInfo.getAuditStatus())) {
+                    vo.setStatusMsg("商品待审核");
+                } else if ("3".equals(goodsInfo.getAuditStatus())) {
+                    vo.setStatusMsg("商品审核未通过");
+                }
+            } else if (!"1".equals(goodsInfo.getIsMarketable())) {
+                // 商品已下架
+                vo.setGoodsName(goodsInfo.getGoodsName());
+                vo.setImage(goodsInfo.getSmallPic());
+                vo.setPrice(BigDecimal.ZERO);
+                vo.setSellerId(goodsInfo.getSellerId());
+                vo.setIsMarketable(goodsInfo.getIsMarketable());
+                vo.setAuditStatus(goodsInfo.getAuditStatus());
+                vo.setIsDelete(goodsInfo.getIsDelete());
+                vo.setValid(false);
+                vo.setStatusMsg("商品已下架");
+            } else if (skuInfo == null) {
+                // SKU不存在
+                vo.setGoodsName(goodsInfo.getGoodsName() + "（规格已失效）");
+                vo.setImage(goodsInfo.getSmallPic());
+                vo.setPrice(BigDecimal.ZERO);
+                vo.setStockCount(0);
+                vo.setSellerId(goodsInfo.getSellerId());
+                vo.setIsMarketable(goodsInfo.getIsMarketable());
+                vo.setAuditStatus(goodsInfo.getAuditStatus());
+                vo.setIsDelete(goodsInfo.getIsDelete());
+                vo.setValid(false);
+                vo.setStatusMsg("商品规格已失效");
+            } else {
+                // 商品正常可用
+                vo.setGoodsName(skuInfo.getTitle());
+                vo.setPrice(skuInfo.getPrice());
+                vo.setStockCount(skuInfo.getStockCount());
+                vo.setImage(skuInfo.getImage());
+                vo.setSpec(skuInfo.getSpec());
+                vo.setSellerId(skuInfo.getSellerId());
+                vo.setIsMarketable(goodsInfo.getIsMarketable());
+                vo.setAuditStatus(goodsInfo.getAuditStatus());
+                vo.setIsDelete(goodsInfo.getIsDelete());
+
+                // 库存校验
+                if (skuInfo.getStockCount() == null || skuInfo.getStockCount() <= 0) {
+                    vo.setValid(false);
+                    vo.setStatusMsg("商品已售罄");
+                } else if (cartItem.getNum() > skuInfo.getStockCount()) {
+                    vo.setValid(true);  // 可以结算，但需要调整数量
+                    vo.setStatusMsg("库存不足，最大可购买" + skuInfo.getStockCount() + "件");
+                } else {
+                    vo.setValid(true);
+                    vo.setStatusMsg(null);
+                }
+            }
+
+            // 计算小计（无效商品小计为0）
+            if (vo.getValid() && vo.getPrice() != null && cartItem.getNum() != null) {
+                vo.setTotalPrice(vo.getPrice().multiply(new BigDecimal(cartItem.getNum())));
+            } else {
+                vo.setTotalPrice(BigDecimal.ZERO);
+            }
+
+            result.add(vo);
         }
 
         return result;

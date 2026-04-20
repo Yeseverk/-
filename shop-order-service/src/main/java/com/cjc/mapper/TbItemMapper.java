@@ -4,6 +4,7 @@ import com.cjc.pojo.TbItem;
 import org.apache.ibatis.annotations.Param;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * SKU Mapper（订单服务使用）
@@ -14,6 +15,11 @@ public interface TbItemMapper {
      * 根据ID查询SKU
      */
     TbItem selectByPrimaryKey(Long id);
+
+    /**
+     * 批量查询SKU（解决N+1查询问题）
+     */
+    List<TbItem> selectItemByIds(List<Long> ids);
 
     /**
      * 根据商品ID查询默认SKU

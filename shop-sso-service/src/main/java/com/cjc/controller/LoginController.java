@@ -29,12 +29,12 @@ public class LoginController {
      * admin 登录
      */
     @PostMapping("/adminLogin")
-    public Result adminLogin(@RequestBody LoginDto loginDto){
+    public Result adminLogin(@RequestBody LoginDto loginDto) {
 
         // 校验
         String username = loginDto.getUsername();
         String password = loginDto.getPassword();
-        if(StringUtils.isEmpty( username) || StringUtils.isEmpty(password)){
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             return Result.fail(ResultCode.USERNAME_PASSWORD_NOT_NULL);
         }
 
@@ -42,17 +42,18 @@ public class LoginController {
         Subject subject = SecurityUtils.getSubject();
 
         // 3. 封装数据
-        LoginUsernamePasswordToken usernamePasswordToken = new LoginUsernamePasswordToken(username, password, LoginConstants.ADMIN);
+        LoginUsernamePasswordToken usernamePasswordToken = new LoginUsernamePasswordToken(username, password,
+                LoginConstants.ADMIN);
         try {
             subject.login(usernamePasswordToken);
         } catch (UnknownAccountException e) {
             return Result.fail(ResultCode.USERNAME_NOT_EXIST);
-        } catch (IncorrectCredentialsException e){
+        } catch (IncorrectCredentialsException e) {
             return Result.fail(ResultCode.USERNAME_PASSWORD_ERROR);
         }
 
         // 获取登录人信息
-        TbAdmin admin = (TbAdmin)subject.getPrincipal();
+        TbAdmin admin = (TbAdmin) subject.getPrincipal();
 
         // 脱敏操作
         admin.setPasssword("");
@@ -63,17 +64,16 @@ public class LoginController {
         return Result.success(token);
     }
 
-
     /**
      * seller 登录
      */
     @PostMapping("/sellerLogin")
-    public Result sellerLogin(@RequestBody LoginDto loginDto){
+    public Result sellerLogin(@RequestBody LoginDto loginDto) {
 
         // 校验
         String username = loginDto.getUsername();
         String password = loginDto.getPassword();
-        if(StringUtils.isEmpty( username) || StringUtils.isEmpty(password)){
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             return Result.fail(ResultCode.USERNAME_PASSWORD_NOT_NULL);
         }
 
@@ -81,17 +81,18 @@ public class LoginController {
         Subject subject = SecurityUtils.getSubject();
 
         // 3. 封装数据
-        LoginUsernamePasswordToken usernamePasswordToken = new LoginUsernamePasswordToken(username, password,LoginConstants.SELLER);
+        LoginUsernamePasswordToken usernamePasswordToken = new LoginUsernamePasswordToken(username, password,
+                LoginConstants.SELLER);
         try {
             subject.login(usernamePasswordToken);
         } catch (UnknownAccountException e) {
             return Result.fail(ResultCode.USERNAME_NOT_EXIST);
-        } catch (IncorrectCredentialsException e){
+        } catch (IncorrectCredentialsException e) {
             return Result.fail(ResultCode.USERNAME_PASSWORD_ERROR);
         }
 
         // 获取登录人信息
-        TbSeller seller = (TbSeller)subject.getPrincipal();
+        TbSeller seller = (TbSeller) subject.getPrincipal();
 
         TbSellerVo tbSellerVo = new TbSellerVo();
         BeanUtils.copyProperties(seller, tbSellerVo);
@@ -108,12 +109,12 @@ public class LoginController {
      * user 用户登录（前台用户）
      */
     @PostMapping("/userLogin")
-    public Result userLogin(@RequestBody LoginDto loginDto){
+    public Result userLogin(@RequestBody LoginDto loginDto) {
 
         // 校验
         String username = loginDto.getUsername();
         String password = loginDto.getPassword();
-        if(StringUtils.isEmpty( username) || StringUtils.isEmpty(password)){
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             return Result.fail(ResultCode.USERNAME_PASSWORD_NOT_NULL);
         }
 
@@ -121,17 +122,18 @@ public class LoginController {
         Subject subject = SecurityUtils.getSubject();
 
         // 3. 封装数据
-        LoginUsernamePasswordToken usernamePasswordToken = new LoginUsernamePasswordToken(username, password, LoginConstants.USER);
+        LoginUsernamePasswordToken usernamePasswordToken = new LoginUsernamePasswordToken(username, password,
+                LoginConstants.USER);
         try {
             subject.login(usernamePasswordToken);
         } catch (UnknownAccountException e) {
             return Result.fail(ResultCode.USERNAME_NOT_EXIST);
-        } catch (IncorrectCredentialsException e){
+        } catch (IncorrectCredentialsException e) {
             return Result.fail(ResultCode.USERNAME_PASSWORD_ERROR);
         }
 
         // 获取登录人信息
-        TbUser user = (TbUser)subject.getPrincipal();
+        TbUser user = (TbUser) subject.getPrincipal();
 
         // 脱敏操作
         user.setPassword("");

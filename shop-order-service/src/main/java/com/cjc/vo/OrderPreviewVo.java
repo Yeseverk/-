@@ -1,9 +1,5 @@
 package com.cjc.vo;
 
-import com.cjc.pojo.TbAddress;
-import com.cjc.pojo.TbOrder;
-import com.cjc.pojo.TbOrderItem;
-
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -14,6 +10,9 @@ public class OrderPreviewVo {
 
     // 待结算商品列表
     private List<OrderItemPreviewVo> cartList;
+
+    // 被移除的无效商品列表（商品状态变更自动移除）
+    private List<RemovedItemVo> removedItems;
 
     // 收货地址
     private AddressVo address;
@@ -33,6 +32,14 @@ public class OrderPreviewVo {
 
     public void setCartList(List<OrderItemPreviewVo> cartList) {
         this.cartList = cartList;
+    }
+
+    public List<RemovedItemVo> getRemovedItems() {
+        return removedItems;
+    }
+
+    public void setRemovedItems(List<RemovedItemVo> removedItems) {
+        this.removedItems = removedItems;
     }
 
     public AddressVo getAddress() {
@@ -169,6 +176,57 @@ public class OrderPreviewVo {
 
         public void setStockCount(Integer stockCount) {
             this.stockCount = stockCount;
+        }
+    }
+
+    /**
+     * 被移除的商品信息（用于提示用户）
+     */
+    public static class RemovedItemVo {
+        private String itemKey;      // goodsId_itemId 格式
+        private Long goodsId;
+        private Long itemId;
+        private String goodsName;    // 商品名称（如果有）
+        private String reason;       // 移除原因：商品已下架、商品已失效、商品审核未通过等
+
+        public String getItemKey() {
+            return itemKey;
+        }
+
+        public void setItemKey(String itemKey) {
+            this.itemKey = itemKey;
+        }
+
+        public Long getGoodsId() {
+            return goodsId;
+        }
+
+        public void setGoodsId(Long goodsId) {
+            this.goodsId = goodsId;
+        }
+
+        public Long getItemId() {
+            return itemId;
+        }
+
+        public void setItemId(Long itemId) {
+            this.itemId = itemId;
+        }
+
+        public String getGoodsName() {
+            return goodsName;
+        }
+
+        public void setGoodsName(String goodsName) {
+            this.goodsName = goodsName;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
         }
     }
 }

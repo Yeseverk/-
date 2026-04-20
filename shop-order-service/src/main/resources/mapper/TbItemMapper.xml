@@ -47,6 +47,17 @@
         limit 1
     </select>
 
+    <!-- 批量查询SKU（解决N+1查询问题） -->
+    <select id="selectItemByIds" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_item
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
     <!-- 乐观锁扣减库存 -->
     <update id="deductStock">
         update tb_item

@@ -24,7 +24,14 @@ public class CartVo {
     private String sellerName;    // 商家名称
     private Integer stockCount;   // 库存
 
+    // 商品状态字段（用于判断是否可购买）
+    private String isMarketable;  // 上架状态 '1'=上架, '0'=下架
+    private String auditStatus;   // 审核状态 0=未提交, 1=待审核, 2=审核通过, 3=审核驳回
+    private String isDelete;      // 删除标记 '1'=已删除
+
     // 计算字段
     private BigDecimal totalPrice; // 小计金额
     private Boolean checked;       // 是否选中（前端使用）
+    private Boolean valid;         // 商品是否有效（前端判断是否可勾选结算）
+    private String statusMsg;      // 状态提示信息（如"商品已下架"、"商品已失效"）
 }
